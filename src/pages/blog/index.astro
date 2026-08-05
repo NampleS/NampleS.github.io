@@ -1,0 +1,18 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostList from '../../components/PostList.astro';
+import { getPosts } from '../../lib/content';
+
+const posts = await getPosts();
+---
+
+<Base title="기록" description="작업 과정과 배운 것들을 적어두는 곳">
+  <section class="wrap section">
+    <div class="section-head">
+      <h2>기록</h2>
+      <span class="link-more">{posts.length}개의 글</span>
+    </div>
+
+    {posts.length ? <PostList posts={posts} /> : <p class="empty">아직 쓴 글이 없습니다.</p>}
+  </section>
+</Base>

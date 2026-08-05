@@ -1,0 +1,8 @@
+작업물 그림 파일을 이 폴더에 넣으세요.
+
+넣은 뒤 src/content/works/ 의 .md 파일 맨 위에 이렇게 적으면 됩니다:
+
+  cover: ../../assets/works/파일이름.png
+
+png, jpg, webp, gif 다 됩니다.
+크기는 신경 쓰지 마세요 — 사이트가 알아서 줄이고 최적화합니다.

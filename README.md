@@ -1,0 +1,115 @@
+# namples.github.io
+
+개인 사이트. 주소는 **https://namples.github.io**
+
+---
+
+## 매일 쓰는 것 딱 3개
+
+### 1. 사이트 미리보기 (내 컴퓨터에서만 보임)
+
+`미리보기.cmd` 를 더블클릭 → 브라우저에서 http://localhost:4321 열기.
+파일을 고치면 화면이 알아서 바뀝니다. 끌 때는 검은 창에서 `Ctrl + C`.
+
+### 2. 글 쓰기
+
+`src/content/blog/` 폴더에 `.md` 파일을 하나 만들면 끝입니다.
+
+```
+---
+title: 글 제목
+date: 2026-08-05
+summary: 목록에 한 줄로 뜨는 설명
+tags: [태그1, 태그2]
+---
+
+여기부터 본문. 그냥 쓰면 됩니다.
+
+## 소제목은 이렇게
+
+**굵게**, *기울임*, [링크](https://example.com)
+
+![그림 설명](/images/파일이름.png)
+```
+
+- 파일 이름이 주소가 됩니다. `첫글.md` → `/blog/첫글/`
+- 아직 공개하기 싫으면 맨 위에 `draft: true` 를 넣으세요. 내 컴퓨터에선 보이고 인터넷에는 안 올라갑니다.
+- 글 속 그림은 `public/images/` 폴더에 넣고 `/images/파일이름.png` 로 부르면 됩니다.
+
+### 3. 작업물 올리기
+
+`src/content/works/` 폴더에 `.md` 파일을 하나 만듭니다.
+
+```
+---
+title: 작업 제목
+date: 2026-08-05
+category: 애니메이션      # 애니메이션 / 일러스트 / 게임 … 같은 이름끼리 묶입니다
+summary: 한 줄 설명
+cover: ../../assets/works/그림.png    # 그림은 src/assets/works/ 에 넣기
+video: https://www.youtube.com/watch?v=xxxx   # 유튜브면 이 줄만 있어도 됨
+featured: true            # 홈 화면에 띄우고 싶을 때
+---
+
+작업 설명을 자유롭게.
+```
+
+`cover` 에 쓴 그림은 사이트가 알아서 줄이고 최적화하니까 원본 크기 그대로 넣어도 됩니다.
+
+---
+
+## 인터넷에 올리기 (배포)
+
+`배포.cmd` 를 더블클릭하면 끝입니다.
+1~2분 뒤 https://namples.github.io 에 반영됩니다.
+
+> 무슨 일이 일어나냐면: 바뀐 파일이 GitHub에 올라가고, GitHub이 알아서 사이트를 만들어 인터넷에 띄웁니다.
+> 내 컴퓨터가 꺼져 있어도 사이트는 계속 살아 있습니다.
+
+---
+
+## 게임 추가하기
+
+1. `public/games/` 안에 폴더를 하나 만들고 `index.html` 을 넣습니다.
+   - 직접 만든 HTML 게임도 되고,
+   - **유니티에서 WebGL로 빌드한 결과물 폴더**를 통째로 넣어도 됩니다.
+2. `src/games.ts` 파일에 한 줄 추가합니다.
+
+```ts
+{
+  slug: '폴더이름',
+  title: '게임 이름',
+  summary: '한 줄 소개',
+  controls: '조작법',
+},
+```
+
+3. `배포.cmd` 실행.
+
+`star-catch` 폴더가 예시로 들어 있으니 흉내 내면 됩니다.
+
+---
+
+## 이름·소개·링크 바꾸기
+
+`src/site.ts` 파일 하나만 고치면 사이트 전체에 반영됩니다.
+(이름, 홈 화면 문구, 인스타·유튜브 링크 등)
+
+---
+
+## 폴더가 뭐가 뭔지
+
+| 폴더 | 뭐가 들었나 |
+|---|---|
+| `src/content/blog/` | 블로그 글 (.md) |
+| `src/content/works/` | 작업물 설명 (.md) |
+| `src/assets/works/` | 작업물 그림 |
+| `public/images/` | 글 속에 넣는 그림 |
+| `public/games/` | 게임 |
+| `src/site.ts` | 이름·소개·링크 |
+| `src/games.ts` | 게임 목록 |
+| `src/pages/`, `src/styles/` | 사이트 뼈대와 디자인 (건드릴 일 거의 없음) |
+
+---
+
+만든 도구: [Astro](https://astro.build) · 호스팅: GitHub Pages (무료)

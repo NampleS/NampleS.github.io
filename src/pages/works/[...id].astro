@@ -1,0 +1,60 @@
+---
+import { Image } from 'astro:assets';
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { getWorks, formatDate, youtubeEmbed } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const works = await getWorks();
+  return works.map((work) => ({ params: { id: work.id }, props: { work } }));
+}
+
+const { work } = Astro.props;
+const { Content } = await render(work);
+const { title, summary, category, date, cover, video } = work.data;
+const embed = video ? youtubeEmbed(video) : null;
+---
+
+<Base title={title} description={summary}>
+  <article class="wrap article">
+    <a class="back" href="/works/">← 작업 목록</a>
+
+    <header class="article-head">
+      <span class="eyebrow">{category}</span>
+      <h1>{title}</h1>
+      <div class="article-meta">
+        <time datetime={date.toISOString()}>{formatDate(date)}</time>
+        {summary && <span>{summary}</span>}
+      </div>
+    </header>
+
+    {
+      embed && (
+        <div class="embed">
+          <iframe
+            src={embed}
+            title={title}
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          />
+        </div>
+      )
+    }
+
+    {
+      cover && !embed && (
+        <Image
+          src={cover}
+          alt={title}
+          width={1440}
+          style="border-radius:var(--radius); border:1px solid var(--line); margin-bottom:2rem;"
+        />
+      )
+    }
+
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+</Base>

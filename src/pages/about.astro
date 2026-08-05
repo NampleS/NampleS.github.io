@@ -1,0 +1,35 @@
+---
+import Base from '../layouts/Base.astro';
+import { site } from '../site';
+---
+
+<Base title="소개" description={site.intro}>
+  <article class="wrap article">
+    <header class="article-head">
+      <span class="eyebrow">{site.eyebrow}</span>
+      <h1>{site.name}</h1>
+    </header>
+
+    <div class="prose">
+      <p>{site.intro}</p>
+
+      <h2>하는 일</h2>
+      <ul>
+        <li>2D 애니메이션 · 캐릭터 디자인</li>
+        <li>일러스트</li>
+        <li>브라우저에서 돌아가는 작은 게임</li>
+      </ul>
+
+      <h2>연락</h2>
+      <p>
+        작업 문의나 그냥 인사도 환영합니다.
+        {site.links.map((l, i) => (
+          <>
+            {i > 0 && ' · '}
+            <a href={l.href}>{l.label}</a>
+          </>
+        ))}
+      </p>
+    </div>
+  </article>
+</Base>

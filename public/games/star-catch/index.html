@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <title>별 받기</title>
+    <meta name="description" content="떨어지는 별을 받고 폭탄은 피하는 미니게임" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+    />
+    <style>
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #0d0b16;
+        color: #ececf1;
+        font-family: 'Pretendard Variable', Pretendard, system-ui, 'Malgun Gothic', sans-serif;
+        -webkit-tap-highlight-color: transparent;
+        overscroll-behavior: none;
+      }
+      #stage {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        touch-action: none;
+      }
+      canvas { display: block; }
+
+      .back {
+        position: fixed;
+        top: max(12px, env(safe-area-inset-top));
+        left: max(12px, env(safe-area-inset-left));
+        z-index: 10;
+        font-size: 0.85rem;
+        color: rgb(236 236 241 / 0.55);
+        text-decoration: none;
+        padding: 0.35rem 0.7rem;
+        border: 1px solid rgb(236 236 241 / 0.18);
+        border-radius: 999px;
+        backdrop-filter: blur(6px);
+        transition: color 0.15s, border-color 0.15s;
+      }
+      .back:hover { color: #fff; border-color: rgb(236 236 241 / 0.45); }
+
+      .overlay {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 0.6rem;
+        text-align: center;
+        padding: 1.5rem;
+        background: rgb(13 11 22 / 0.72);
+        backdrop-filter: blur(3px);
+      }
+      .overlay[hidden] { display: none; }
+      .overlay h1 { font-size: clamp(1.7rem, 8vw, 2.4rem); margin: 0; letter-spacing: -0.03em; }
+      .overlay p { margin: 0; color: rgb(236 236 241 / 0.62); font-size: 0.95rem; line-height: 1.7; }
+      .overlay .big { font-size: clamp(2.6rem, 14vw, 3.6rem); font-weight: 800; color: #c4b5fd; letter-spacing: -0.04em; }
+      button {
+        margin-top: 0.7rem;
+        font: inherit;
+        font-weight: 700;
+        font-size: 1rem;
+        color: #14101f;
+        background: #c4b5fd;
+        border: 0;
+        border-radius: 999px;
+        padding: 0.75rem 2.2rem;
+        cursor: pointer;
+        transition: transform 0.12s, background 0.15s;
+      }
+      button:hover { background: #d8ccff; transform: translateY(-1px); }
+      button:active { transform: translateY(1px); }
+    </style>
+  </head>
+  <body>
+    <a class="back" href="/games/">← 게임 목록</a>
+    <div id="stage">
+      <canvas id="c"></canvas>
+      <div class="overlay" id="ov">
+        <h1 id="ov-title">별 받기</h1>
+        <div class="big" id="ov-score" hidden></div>
+        <p id="ov-text">떨어지는 별을 받고<br />폭탄은 피하세요.<br /><br />← → 키 또는 화면을 손가락으로 쓸기</p>
+        <button id="ov-btn">시작</button>
+      </div>
+    </div>
+
+    <script>
+      (() => {
+        'use strict';
+
+        // ── 가상 좌표계 (실제 화면 크기와 무관하게 이 안에서 계산) ──
+        const W = 360;
+        const H = 620;
+
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+        const stage = document.getElementById('stage');
+        const ov = document.getElementById('ov');
+        const ovTitle = document.getElementById('ov-title');
+        const ovText = document.getElementById('ov-text');
+        const ovScore = document.getElementById('ov-score');
+        const ovBtn = document.getElementById('ov-btn');
+
+        let scale = 1;
+
+        function resize() {
+          const vw = stage.clientWidth;
+          const vh = stage.clientHeight;
+          scale = Math.min(vw / W, vh / H);
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          canvas.style.width = W * scale + 'px';
+          canvas.style.height = H * scale + 'px';
+          canvas.width = Math.round(W * scale * dpr);
+          canvas.height = Math.round(H * scale * dpr);
+          ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+        }
+        window.addEventListener('resize', resize);
+
+        // ── 상태 ──────────────────────────────────────────
+        const BEST_KEY = 'star-catch-best';
+        let state = 'ready'; // ready | playing | over
+        let score = 0;
+        let lives = 3;
+        let elapsed = 0;
+        let spawnTimer = 0;
+        let shake = 0;
+        let items = [];
+        let bits = [];
+        let best = Number(localStorage.getItem(BEST_KEY) || 0);
+
+        const player = { x: W / 2, target: W / 2, w: 62, y: H - 74, hurt: 0, blink: 0 };
+        const keys = { left: false, right: false };
+
+        // 배경 별
+        const bgStars = Array.from({ length: 46 }, (_, i) => ({
+          x: (i * 97.3) % W,
+          y: (i * 151.7) % H,
+          r: 0.6 + ((i * 37) % 10) / 9,
+          p: (i * 0.37) % 1,
+        }));
+
+        function reset() {
+          score = 0;
+          lives = 3;
+          elapsed = 0;
+          spawnTimer = 0;
+          shake = 0;
+          items = [];
+          bits = [];
+          player.x = player.target = W / 2;
+          player.hurt = 0;
+        }
+
+        function start() {
+          reset();
+          state = 'playing';
+          ov.hidden = true;
+        }
+
+        function gameOver() {
+          state = 'over';
+          if (score > best) {
+            best = score;
+            try { localStorage.setItem(BEST_KEY, String(best)); } catch (e) {}
+          }
+          ovTitle.textContent = '게임 끝';
+          ovScore.hidden = false;
+          ovScore.textContent = score;
+          ovText.innerHTML = '최고 기록 <b>' + best + '</b>점';
+          ovBtn.textContent = '다시 하기';
+          ov.hidden = false;
+        }
+
+        // ── 입력 ──────────────────────────────────────────
+        addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+          if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+          if ((e.key === ' ' || e.key === 'Enter') && state !== 'playing') { e.preventDefault(); start(); }
+          if (e.key.startsWith('Arrow')) e.preventDefault();
+        });
+        addEventListener('keyup', (e) => {
+          if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+          if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+        });
+
+        function pointAt(clientX) {
+          const rect = canvas.getBoundingClientRect();
+          player.target = Math.max(player.w / 2, Math.min(W - player.w / 2, (clientX - rect.left) / scale));
+        }
+        let dragging = false;
+        stage.addEventListener('pointerdown', (e) => { dragging = true; pointAt(e.clientX); });
+        stage.addEventListener('pointermove', (e) => { if (dragging) pointAt(e.clientX); });
+        addEventListener('pointerup', () => { dragging = false; });
+        addEventListener('pointercancel', () => { dragging = false; });
+
+        ovBtn.addEventListener('click', (e) => { e.stopPropagation(); start(); });
+
+        // ── 스폰 ──────────────────────────────────────────
+        function spawn() {
+          const t = elapsed / 1000;
+          const bombChance = Math.min(0.14 + t * 0.008, 0.34);
+          const r = Math.random();
+          let type = 'star';
+          if (r < bombChance) type = 'bomb';
+          else if (r > 0.94) type = 'big';
+          items.push({
+            x: 24 + Math.random() * (W - 48),
+            y: -24,
+            vy: (110 + Math.random() * 55 + t * 6) * (type === 'bomb' ? 1.06 : 1),
+            rot: Math.random() * Math.PI,
+            spin: (Math.random() - 0.5) * 3,
+            type,
+            r: type === 'big' ? 16 : 12,
+          });
+        }
+
+        function burst(x, y, color, n) {
+          for (let i = 0; i < n; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const s = 40 + Math.random() * 130;
+            bits.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 40, life: 0.5 + Math.random() * 0.4, max: 0.9, color });
+          }
+        }
+
+        // ── 갱신 ──────────────────────────────────────────
+        function update(dt) {
+          if (state !== 'playing') return;
+          elapsed += dt * 1000;
+
+          if (keys.left) player.target -= 420 * dt;
+          if (keys.right) player.target += 420 * dt;
+          player.target = Math.max(player.w / 2, Math.min(W - player.w / 2, player.target));
+          player.x += (player.target - player.x) * Math.min(1, dt * 16);
+
+          if (player.hurt > 0) player.hurt -= dt;
+          player.blink = (player.blink + dt) % 3.4;
+
+          const interval = Math.max(0.32, 0.95 - elapsed / 22000);
+          spawnTimer += dt;
+          while (spawnTimer >= interval) { spawnTimer -= interval; spawn(); }
+
+          const py = player.y;
+          for (let i = items.length - 1; i >= 0; i--) {
+            const it = items[i];
+            it.y += it.vy * dt;
+            it.rot += it.spin * dt;
+
+            const caught =
+              it.y + it.r > py - 6 &&
+              it.y - it.r < py + 20 &&
+              Math.abs(it.x - player.x) < player.w / 2 + it.r * 0.5;
+
+            if (caught) {
+              items.splice(i, 1);
+              if (it.type === 'bomb') {
+                lives--;
+                player.hurt = 0.55;
+                shake = 12;
+                burst(it.x, py - 8, '#ff6b6b', 16);
+                if (lives <= 0) { gameOver(); return; }
+              } else {
+                const gain = it.type === 'big' ? 5 : 1;
+                score += gain;
+                burst(it.x, py - 8, it.type === 'big' ? '#ffd66b' : '#c4b5fd', it.type === 'big' ? 18 : 9);
+              }
+              continue;
+            }
+
+            if (it.y - it.r > H + 20) {
+              items.splice(i, 1);
+              if (it.type !== 'bomb') {
+                lives--;
+                shake = 6;
+                if (lives <= 0) { gameOver(); return; }
+              }
+            }
+          }
+
+          for (let i = bits.length - 1; i >= 0; i--) {
+            const b = bits[i];
+            b.life -= dt;
+            if (b.life <= 0) { bits.splice(i, 1); continue; }
+            b.x += b.vx * dt;
+            b.y += b.vy * dt;
+            b.vy += 320 * dt;
+          }
+
+          if (shake > 0) shake = Math.max(0, shake - dt * 48);
+        }
+
+        // ── 그리기 ────────────────────────────────────────
+        function starPath(g, r) {
+          g.beginPath();
+          for (let i = 0; i < 10; i++) {
+            const rad = i % 2 === 0 ? r : r * 0.44;
+            const a = (Math.PI / 5) * i - Math.PI / 2;
+            const x = Math.cos(a) * rad;
+            const y = Math.sin(a) * rad;
+            i === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+          }
+          g.closePath();
+        }
+
+        function drawPlayer() {
+          const x = player.x;
+          const y = player.y;
+          const hurt = player.hurt > 0 && Math.floor(player.hurt * 14) % 2 === 0;
+          ctx.save();
+          ctx.translate(x, y);
+
+          // 그림자
+          ctx.fillStyle = 'rgba(0,0,0,0.28)';
+          ctx.beginPath();
+          ctx.ellipse(0, 34, 26, 6, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          const body = hurt ? '#ff8a8a' : '#8b6df0';
+          // 귀
+          ctx.fillStyle = body;
+          ctx.beginPath();
+          ctx.moveTo(-17, -12); ctx.lineTo(-26, -34); ctx.lineTo(-6, -20); ctx.closePath(); ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(17, -12); ctx.lineTo(26, -34); ctx.lineTo(6, -20); ctx.closePath(); ctx.fill();
+
+          // 몸통
+          ctx.beginPath();
+          ctx.moveTo(-player.w / 2, 4);
+          ctx.quadraticCurveTo(-player.w / 2, -22, 0, -22);
+          ctx.quadraticCurveTo(player.w / 2, -22, player.w / 2, 4);
+          ctx.quadraticCurveTo(player.w / 2, 30, 0, 30);
+          ctx.quadraticCurveTo(-player.w / 2, 30, -player.w / 2, 4);
+          ctx.closePath();
+          ctx.fill();
+
+          // 배(받는 부분)
+          ctx.fillStyle = 'rgba(255,255,255,0.16)';
+          ctx.beginPath();
+          ctx.ellipse(0, 6, player.w / 2 - 9, 15, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // 눈 (가끔 깜빡)
+          const blinking = player.blink > 3.2;
+          ctx.fillStyle = '#1a1424';
+          if (blinking) {
+            ctx.fillRect(-15, -6, 9, 2);
+            ctx.fillRect(6, -6, 9, 2);
+          } else {
+            ctx.beginPath(); ctx.ellipse(-10, -6, 4, 5, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(10, -6, 4, 5, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            ctx.beginPath(); ctx.arc(-8.6, -7.6, 1.4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(11.4, -7.6, 1.4, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        function draw() {
+          const t = performance.now() / 1000;
+          ctx.save();
+          if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+
+          // 배경
+          const g = ctx.createLinearGradient(0, 0, 0, H);
+          g.addColorStop(0, '#191331');
+          g.addColorStop(0.55, '#120e22');
+          g.addColorStop(1, '#0b0914');
+          ctx.fillStyle = g;
+          ctx.fillRect(-20, -20, W + 40, H + 40);
+
+          for (const s of bgStars) {
+            ctx.globalAlpha = 0.25 + 0.55 * Math.abs(Math.sin(t * 0.8 + s.p * 6.28));
+            ctx.fillStyle = '#cfc6ff';
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+
+          // 바닥 빛
+          const fg = ctx.createLinearGradient(0, H - 130, 0, H);
+          fg.addColorStop(0, 'rgba(139,109,240,0)');
+          fg.addColorStop(1, 'rgba(139,109,240,0.20)');
+          ctx.fillStyle = fg;
+          ctx.fillRect(0, H - 130, W, 130);
+
+          // 떨어지는 것들
+          for (const it of items) {
+            ctx.save();
+            ctx.translate(it.x, it.y);
+            ctx.rotate(it.rot);
+            if (it.type === 'bomb') {
+              ctx.fillStyle = '#2b2436';
+              ctx.strokeStyle = '#ff6b6b';
+              ctx.lineWidth = 2.5;
+              ctx.beginPath(); ctx.arc(0, 0, it.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+              ctx.strokeStyle = '#ffb36b';
+              ctx.lineWidth = 2;
+              ctx.beginPath(); ctx.moveTo(4, -it.r + 1); ctx.quadraticCurveTo(12, -it.r - 6, 8, -it.r - 12); ctx.stroke();
+            } else {
+              const big = it.type === 'big';
+              ctx.shadowColor = big ? 'rgba(255,214,107,0.85)' : 'rgba(196,181,253,0.7)';
+              ctx.shadowBlur = big ? 18 : 10;
+              ctx.fillStyle = big ? '#ffd66b' : '#c4b5fd';
+              starPath(ctx, it.r);
+              ctx.fill();
+            }
+            ctx.restore();
+          }
+
+          // 파티클
+          for (const b of bits) {
+            ctx.globalAlpha = Math.max(0, b.life / b.max);
+            ctx.fillStyle = b.color;
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, 2.6, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+
+          drawPlayer();
+
+          // HUD
+          ctx.fillStyle = '#ececf1';
+          ctx.font = '700 26px Pretendard Variable, system-ui, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+          ctx.fillText(String(score), 16, 46);
+
+          ctx.font = '600 12px Pretendard Variable, system-ui, sans-serif';
+          ctx.fillStyle = 'rgba(236,236,241,0.45)';
+          ctx.fillText('점수', 16, 34);
+
+          ctx.textAlign = 'right';
+          for (let i = 0; i < 3; i++) {
+            ctx.globalAlpha = i < lives ? 1 : 0.2;
+            ctx.save();
+            ctx.translate(W - 20 - i * 22, 52);
+            ctx.fillStyle = '#ff8a8a';
+            ctx.beginPath();
+            ctx.moveTo(0, 3);
+            ctx.bezierCurveTo(-8, -6, -2, -11, 0, -5);
+            ctx.bezierCurveTo(2, -11, 8, -6, 0, 3);
+            ctx.fill();
+            ctx.restore();
+          }
+          ctx.globalAlpha = 1;
+
+          if (best > 0 && state === 'playing') {
+            ctx.font = '600 12px Pretendard Variable, system-ui, sans-serif';
+            ctx.fillStyle = 'rgba(236,236,241,0.4)';
+            ctx.textAlign = 'right';
+            ctx.fillText('최고 ' + best, W - 16, 34);
+          }
+
+          ctx.restore();
+        }
+
+        // ── 루프 ──────────────────────────────────────────
+        let last = performance.now();
+        function frame(now) {
+          const dt = Math.min((now - last) / 1000, 0.05);
+          last = now;
+          update(dt);
+          draw();
+          requestAnimationFrame(frame);
+        }
+
+        resize();
+        if (best > 0) ovText.innerHTML += '<br><br>최고 기록 <b>' + best + '</b>점';
+        requestAnimationFrame(frame);
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,66 @@
+---
+import '../styles/global.css';
+import { site, nav } from '../site';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+const pageTitle = title ? `${title} — ${site.name}` : `${site.name}`;
+const pageDesc = description ?? site.description;
+const path = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDesc} />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="canonical" href={new URL(path, Astro.site)} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDesc} />
+    <meta property="og:locale" content="ko_KR" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="alternate" type="application/rss+xml" title={site.name} href="/rss.xml" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap bar">
+        <a class="brand" href="/">{site.name}</a>
+        <nav class="site-nav">
+          {
+            nav.map((item) => (
+              <a
+                href={item.href}
+                aria-current={path === item.href || (item.href !== '/' && path.startsWith(item.href)) ? 'page' : undefined}
+              >
+                {item.label}
+              </a>
+            ))
+          }
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap row">
+        <span>© {new Date().getFullYear()} {site.name}</span>
+        <span style="display:flex; flex-wrap:wrap; gap:0.5rem 1rem;">
+          {site.links.map((l) => <a href={l.href}>{l.label}</a>)}
+        </span>
+      </div>
+    </footer>
+  </body>
+</html>

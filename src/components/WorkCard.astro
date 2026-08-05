@@ -1,0 +1,28 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  work: CollectionEntry<'works'>;
+}
+
+const { work } = Astro.props;
+const { title, summary, category, cover } = work.data;
+---
+
+<a class="card" href={`/works/${work.id}/`}>
+  <div class="thumb">
+    {
+      cover ? (
+        <Image src={cover} alt={title} width={720} height={540} />
+      ) : (
+        <span class="ph">이미지 없음<br />src/assets/works/ 에 넣고<br />cover에 파일명을 적으세요</span>
+      )
+    }
+  </div>
+  <div class="body">
+    <span class="cat">{category}</span>
+    <h3>{title}</h3>
+    {summary && <p>{summary}</p>}
+  </div>
+</a>

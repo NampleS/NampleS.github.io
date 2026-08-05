@@ -1,0 +1,38 @@
+---
+import Base from '../../layouts/Base.astro';
+import WorkCard from '../../components/WorkCard.astro';
+import { getWorks } from '../../lib/content';
+
+const works = await getWorks();
+const categories = [...new Set(works.map((w) => w.data.category))];
+---
+
+<Base title="작업" description="애니메이션·일러스트·게임 작업물 모음">
+  <section class="wrap section">
+    <div class="section-head">
+      <h2>작업</h2>
+      <span class="link-more">{works.length}개</span>
+    </div>
+
+    {
+      works.length ? (
+        categories.map((cat) => (
+          <div style="margin-bottom:3rem;">
+            <h3 class="eyebrow" style="margin-bottom:1rem; display:block;">
+              {cat}
+            </h3>
+            <div class="grid">
+              {works
+                .filter((w) => w.data.category === cat)
+                .map((work) => (
+                  <WorkCard work={work} />
+                ))}
+            </div>
+          </div>
+        ))
+      ) : (
+        <p class="empty">아직 올린 작업이 없습니다.</p>
+      )
+    }
+  </section>
+</Base>
