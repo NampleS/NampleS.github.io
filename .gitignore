@@ -5,6 +5,9 @@ dist/
 # deps
 node_modules/
 
+# 관리 화면에서 지운 작업물 (되살릴 수 있게 남겨두지만 인터넷엔 안 올림)
+_휴지통/
+
 # 환경
 .env
 .env.production
