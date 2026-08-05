@@ -1,0 +1,59 @@
+---
+import Base from '../layouts/Base.astro';
+import { games } from '../games';
+import { useT, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useT(lang);
+
+const playable = games.filter((g) => !g.wip);
+const soon = games.filter((g) => g.wip);
+---
+
+<Base lang={lang} title={t('sec_games')}>
+  <section class="wrap sec">
+    <div class="sec-head">
+      <h2>{t('sec_games')}</h2>
+      <span class="grow"></span>
+      <span class="small">{t('games_note')}</span>
+    </div>
+
+    {
+      playable.length ? (
+        <div class="game-list">
+          {playable.map((g) => (
+            <a class="game rough" href={`/games/${g.slug}/index.html`}>
+              <h3>{g.title[lang]}</h3>
+              <p>{g.summary[lang]}</p>
+              <span class="keys">
+                {t('controls')} · {g.controls[lang]}
+              </span>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p class="empty">{t('empty_games')}</p>
+      )
+    }
+
+    {
+      soon.length > 0 && (
+        <div style="margin-top:3rem">
+          <h3 class="cat-head">{t('coming_soon')}</h3>
+          <div class="game-list">
+            {soon.map((g) => (
+              <div class="game rough game--wip">
+                <h3>{g.title[lang]}</h3>
+                <p>{g.summary[lang]}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+    }
+  </section>
+</Base>

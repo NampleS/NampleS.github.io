@@ -1,0 +1,26 @@
+---
+import Base from '../layouts/Base.astro';
+import PostList from '../components/PostList.astro';
+import { getPosts } from '../lib/content';
+import { useT, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useT(lang);
+const posts = await getPosts(lang);
+---
+
+<Base lang={lang} title={t('sec_blog')}>
+  <section class="wrap sec">
+    <div class="sec-head">
+      <h2>{t('sec_blog')}</h2>
+      <span class="grow"></span>
+      <span class="small">{t('count_posts', { n: posts.length })}</span>
+    </div>
+
+    {posts.length ? <PostList posts={posts} lang={lang} /> : <p class="empty">{t('empty_posts')}</p>}
+  </section>
+</Base>

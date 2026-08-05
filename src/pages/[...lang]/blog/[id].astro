@@ -1,0 +1,23 @@
+---
+import BlogDetail from '../../../views/BlogDetail.astro';
+import { getPosts } from '../../../lib/content';
+import { langs, defaultLang } from '../../../i18n/ui';
+
+export async function getStaticPaths() {
+  const paths = [];
+  for (const lang of langs) {
+    const posts = await getPosts(lang);
+    posts.forEach((item, i) => {
+      paths.push({
+        params: { lang: lang === defaultLang ? undefined : lang, id: item.base },
+        props: { item, lang, newer: posts[i - 1] ?? null, older: posts[i + 1] ?? null },
+      });
+    });
+  }
+  return paths;
+}
+
+const { item, lang, newer, older } = Astro.props;
+---
+
+<BlogDetail item={item} lang={lang} newer={newer} older={older} />

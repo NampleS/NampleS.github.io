@@ -1,26 +1,29 @@
 ---
 import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
+import { localize, type Lang } from '../i18n/ui';
+import type { Localized } from '../lib/content';
 
 interface Props {
-  work: CollectionEntry<'works'>;
+  item: Localized<CollectionEntry<'works'>>;
+  lang: Lang;
 }
 
-const { work } = Astro.props;
-const { title, summary, category, cover } = work.data;
+const { item, lang } = Astro.props;
+const { title, summary, category, cover } = item.entry.data;
 ---
 
-<a class="card" href={`/works/${work.id}/`}>
-  <div class="thumb">
+<a class="work" href={localize(`/works/${item.base}/`, lang)}>
+  <div class="work-img rough">
     {
       cover ? (
-        <Image src={cover} alt={title} width={720} height={540} />
+        <Image src={cover} alt={title} width={760} height={570} />
       ) : (
-        <span class="ph">이미지 없음<br />src/assets/works/ 에 넣고<br />cover에 파일명을 적으세요</span>
+        <span class="none">no image</span>
       )
     }
   </div>
-  <div class="body">
+  <div class="work-txt">
     <span class="cat">{category}</span>
     <h3>{title}</h3>
     {summary && <p>{summary}</p>}

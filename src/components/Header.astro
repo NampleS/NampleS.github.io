@@ -1,0 +1,50 @@
+---
+import { siteName, nav } from '../site';
+import { languages, langs, localize, swapLang, useT, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+  path: string;
+}
+
+const { lang, path } = Astro.props;
+const t = useT(lang);
+
+const strip = (p: string) => {
+  const parts = p.split('/').filter(Boolean);
+  if ((langs as string[]).includes(parts[0])) parts.shift();
+  return '/' + parts.join('/') + (parts.length ? '/' : '');
+};
+const here = strip(path);
+---
+
+<header class="hdr">
+  <div class="wrap hdr-in">
+    <a class="brand" href={localize('/', lang)}>{siteName}</a>
+
+    <nav class="nav" aria-label={t('nav_works')}>
+      {
+        nav.map((item) => (
+          <a
+            href={localize(item.path, lang)}
+            aria-current={here === item.path || (item.path !== '/' && here.startsWith(item.path)) ? 'page' : undefined}
+          >
+            {t(item.key)}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="langs" aria-label={t('lang_label')}>
+      {
+        langs.map((l) => (
+          <a href={swapLang(path, l)} hreflang={l} aria-current={l === lang ? 'true' : undefined}>
+            {languages[l].short}
+          </a>
+        ))
+      }
+    </div>
+  </div>
+
+  <div class="wrap"><div class="rule" style="margin-top:1.1rem"></div></div>
+</header>

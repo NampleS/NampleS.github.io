@@ -1,25 +1,25 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import { localize, dateFormat, type Lang } from '../i18n/ui';
+import type { Localized } from '../lib/content';
 
 interface Props {
-  posts: CollectionEntry<'blog'>[];
+  posts: Localized<CollectionEntry<'blog'>>[];
+  lang: Lang;
 }
 
-const { posts } = Astro.props;
-
-const fmt = (d: Date) =>
-  new Intl.DateTimeFormat('ko-KR', { dateStyle: 'long', timeZone: 'Asia/Seoul' }).format(d);
+const { posts, lang } = Astro.props;
 ---
 
-<ul class="posts">
+<ul class="notes">
   {
-    posts.map((post) => (
+    posts.map((p) => (
       <li>
-        <a href={`/blog/${post.id}/`}>
-          <time datetime={post.data.date.toISOString()}>{fmt(post.data.date)}</time>
+        <a href={localize(`/blog/${p.base}/`, lang)}>
+          <time datetime={p.entry.data.date.toISOString()}>{dateFormat(p.entry.data.date, lang)}</time>
           <div>
-            <h3>{post.data.title}</h3>
-            {post.data.summary && <p>{post.data.summary}</p>}
+            <h3>{p.entry.data.title}</h3>
+            {p.entry.data.summary && <p>{p.entry.data.summary}</p>}
           </div>
         </a>
       </li>

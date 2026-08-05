@@ -1,0 +1,45 @@
+---
+import Base from '../layouts/Base.astro';
+import WorkCard from '../components/WorkCard.astro';
+import { getWorks } from '../lib/content';
+import { useT, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useT(lang);
+
+const works = await getWorks(lang);
+const categories = [...new Set(works.map((w) => w.entry.data.category))];
+---
+
+<Base lang={lang} title={t('sec_works')}>
+  <section class="wrap sec">
+    <div class="sec-head">
+      <h2>{t('sec_works')}</h2>
+      <span class="grow"></span>
+      <span class="small">{t('count_works', { n: works.length })}</span>
+    </div>
+
+    {
+      works.length ? (
+        categories.map((cat) => (
+          <div style="margin-bottom:clamp(3rem,7vw,4.5rem)">
+            <h3 class="cat-head">{cat}</h3>
+            <div class="works">
+              {works
+                .filter((w) => w.entry.data.category === cat)
+                .map((item) => (
+                  <WorkCard item={item} lang={lang} />
+                ))}
+            </div>
+          </div>
+        ))
+      ) : (
+        <p class="empty">{t('empty_works')}</p>
+      )
+    }
+  </section>
+</Base>

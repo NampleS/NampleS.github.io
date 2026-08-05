@@ -1,0 +1,62 @@
+---
+import { Image } from 'astro:assets';
+import { render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { youtubeEmbed, type Localized } from '../lib/content';
+import { localize, dateFormat, useT, type Lang } from '../i18n/ui';
+
+interface Props {
+  item: Localized<CollectionEntry<'works'>>;
+  lang: Lang;
+}
+
+const { item, lang } = Astro.props;
+const t = useT(lang);
+const { Content } = await render(item.entry);
+const { title, summary, category, date, cover, video } = item.entry.data;
+const embed = video ? youtubeEmbed(video) : null;
+---
+
+<Base lang={lang} title={title} description={summary}>
+  <article class="wrap article">
+    <a class="back" href={localize('/works/', lang)}>← {t('back_works')}</a>
+
+    <header class="article-head">
+      <span class="eyebrow">{category}</span>
+      <h1>{title}</h1>
+      <div class="meta">
+        <time datetime={date.toISOString()}>{dateFormat(date, lang)}</time>
+        {summary && <span>{summary}</span>}
+      </div>
+    </header>
+
+    {!item.translated && lang !== 'ko' && <p class="notice rough">{t('no_translation')}</p>}
+
+    {
+      embed && (
+        <div class="embed rough">
+          <iframe
+            src={embed}
+            title={title}
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          />
+        </div>
+      )
+    }
+
+    {
+      cover && !embed && (
+        <div class="rough" style="margin-bottom:2.4rem">
+          <Image src={cover} alt={title} width={1440} />
+        </div>
+      )
+    }
+
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+</Base>

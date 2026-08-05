@@ -98,8 +98,11 @@ async function listWorks() {
   for (const file of files) {
     const raw = await fsp.readFile(path.join(WORKS, file), 'utf8');
     const { data, body } = parseFrontmatter(raw);
+    const id = file.replace(/\.md$/i, '');
+    const langMatch = id.match(/\.(en|ja)$/);
     out.push({
-      id: file.replace(/\.md$/i, ''),
+      id,
+      lang: langMatch ? langMatch[1] : 'ko',
       file,
       title: data.title ?? '',
       date: toDateStr(data.date),
@@ -301,54 +304,77 @@ const PAGE = /* html */ `<!doctype html>
 <html lang="ko"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>작업물 관리</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Nanum+Pen+Script&family=Nanum+Gothic+Coding:wght@400;700&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box}
-:root{--bg:#101013;--surface:#1a1a20;--line:#2a2a33;--text:#ececf1;--muted:#9a9aa6;--accent:#a78bfa;--danger:#ff6b6b}
-@media (prefers-color-scheme:light){:root{--bg:#fbfaf8;--surface:#fff;--line:#e5e1d9;--text:#17171c;--muted:#6a6a76;--accent:#6d4aff}}
-body{margin:0;background:var(--bg);color:var(--text);font-family:'Pretendard Variable',Pretendard,system-ui,'Malgun Gothic',sans-serif;line-height:1.6}
-header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-.bar{max-width:1200px;margin:0 auto;padding:.9rem 1.25rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
-h1{font-size:1.1rem;margin:0;letter-spacing:-.02em}
-.count{color:var(--muted);font-size:.87rem}
+:root{--paper:#f0e9dc;--paper2:#e6dcca;--ink:#16130e;--soft:#6a6154;--faint:#b3a894;--accent:#c8401d}
+@media (prefers-color-scheme:dark){:root{--paper:#14120e;--paper2:#1e1a14;--ink:#ece3d2;--soft:#948b7c;--faint:#4a4338;--accent:#ff6e42}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Caveat','Nanum Pen Script',cursive;font-size:20px;line-height:1.55}
+header{padding:1.4rem 0 0}
+.bar{max-width:1200px;margin:0 auto;padding:0 1.5rem;display:flex;gap:1rem;align-items:baseline;flex-wrap:wrap}
+h1{font-size:1.7rem;margin:0;letter-spacing:-.02em;transform:rotate(-1.4deg)}
+.count{color:var(--soft);font-size:.8em}
 .spacer{flex:1}
-button{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:9px;padding:.5rem 1rem;cursor:pointer;transition:.15s}
-button:hover{border-color:var(--accent);color:var(--accent)}
-button.primary{background:var(--accent);border-color:var(--accent);color:#14101f}
-button.primary:hover{filter:brightness(1.1);color:#14101f}
-main{max-width:1200px;margin:0 auto;padding:1.5rem 1.25rem 5rem}
-#drop{border:2px dashed var(--line);border-radius:14px;padding:1.6rem;text-align:center;color:var(--muted);margin-bottom:1.5rem;transition:.15s;font-size:.92rem}
-#drop.on{border-color:var(--accent);color:var(--accent)}
-.grid{display:grid;gap:1.1rem;grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;position:relative;display:flex;flex-direction:column}
-.card.gone{opacity:.35;pointer-events:none}
-.thumb{aspect-ratio:4/3;background:linear-gradient(135deg,#2a2340,#1a1a20);display:grid;place-items:center;overflow:hidden}
+.rule{max-width:1200px;margin:1rem auto 0;padding:0 1.5rem;position:relative;height:12px}
+.rule::after{content:'';position:absolute;left:1.5rem;right:1.5rem;top:3px;height:12px;border-top:1.6px solid var(--ink);filter:url(#wobble)}
+button{position:relative;font:inherit;background:none;border:0;color:var(--ink);padding:.35rem 1.1rem;cursor:pointer}
+button::before{content:'';position:absolute;inset:0;border:1.8px solid var(--ink);filter:url(#wobble)}
+button:hover{color:var(--accent)}
+button:hover::before{border-color:var(--accent)}
+button.primary{color:var(--accent)}
+button.primary::before{border-color:var(--accent);border-width:2.4px}
+button:disabled{opacity:.45;cursor:default}
+main{max-width:1200px;margin:0 auto;padding:1.8rem 1.5rem 5rem}
+#drop{position:relative;padding:1.5rem;text-align:center;color:var(--soft);margin-bottom:2.2rem;font-size:.95em}
+#drop::before{content:'';position:absolute;inset:0;border:2px dashed var(--faint);filter:url(#wobble)}
+#drop.on{color:var(--accent)}
+#drop.on::before{border-color:var(--accent)}
+#pick{cursor:pointer;border-bottom:1.5px solid var(--accent)}
+.grid{display:grid;gap:2.4rem 1.8rem;grid-template-columns:repeat(auto-fill,minmax(265px,1fr))}
+.card{position:relative;display:flex;flex-direction:column}
+.card:nth-child(3n+1){transform:rotate(-.6deg)}
+.card:nth-child(3n+2){transform:rotate(.5deg)}
+.card.gone{opacity:.3;pointer-events:none}
+.thumb{position:relative;aspect-ratio:4/3;background:var(--paper2);display:grid;place-items:center;overflow:hidden}
+.thumb::before{content:'';position:absolute;inset:-4px;border:1.6px solid var(--ink);filter:url(#wobble);pointer-events:none;z-index:2}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.thumb .none{color:var(--muted);font-size:.8rem;text-align:center;padding:1rem}
-.x{position:absolute;top:.55rem;right:.55rem;width:30px;height:30px;padding:0;border-radius:50%;display:grid;place-items:center;font-size:1rem;line-height:1;background:rgba(20,16,32,.72);color:#fff;border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(4px)}
-.x:hover{background:var(--danger);border-color:var(--danger);color:#fff}
-.body{padding:.85rem .95rem 1rem;display:flex;flex-direction:column;gap:.45rem}
-input,select,textarea{font:inherit;width:100%;background:transparent;color:var(--text);border:1px solid transparent;border-radius:7px;padding:.32rem .45rem}
-input:hover,select:hover,textarea:hover{border-color:var(--line)}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);background:var(--bg)}
-.t-title{font-weight:700;font-size:1rem}
-.t-sum{font-size:.87rem;color:var(--muted);resize:vertical;min-height:2.4rem}
-.row{display:flex;gap:.4rem;align-items:center}
-.row select{flex:1;font-size:.84rem}
-.row input[type=date]{width:auto;font-size:.82rem;color:var(--muted)}
-label.star{display:flex;align-items:center;gap:.3rem;font-size:.82rem;color:var(--muted);cursor:pointer;white-space:nowrap;padding:.2rem .3rem}
+.thumb .none{color:var(--faint);font-size:.8em;text-align:center;padding:1rem}
+.badge{position:absolute;top:.5rem;left:.5rem;z-index:3;font-size:.7em;letter-spacing:.14em;text-transform:uppercase;color:var(--paper);background:var(--ink);padding:.05rem .45rem}
+.x{position:absolute;top:-.7rem;right:-.7rem;z-index:4;width:34px;height:34px;padding:0;display:grid;place-items:center;font-size:1.1rem;line-height:1;background:var(--paper);color:var(--ink)}
+.x::before{border-radius:50%}
+.x:hover{color:var(--accent)}
+.body{padding:.8rem .1rem 0;display:flex;flex-direction:column;gap:.3rem}
+input,select,textarea{font:inherit;width:100%;background:transparent;color:var(--ink);border:0;border-bottom:1.4px solid transparent;padding:.15rem .1rem}
+input:hover,select:hover,textarea:hover{border-bottom-color:var(--faint)}
+input:focus,select:focus,textarea:focus{outline:none;border-bottom-color:var(--accent)}
+.t-title{font-size:1.15em;font-weight:700}
+.t-sum{font-size:.88em;color:var(--soft);resize:vertical;min-height:2.2rem;font-family:inherit}
+.row{display:flex;gap:.6rem;align-items:center}
+.row select{flex:1;font-size:.85em}
+.row input[type=date]{width:auto;font-size:.8em;color:var(--soft);font-family:'Nanum Gothic Coding',monospace}
+label.star{display:flex;align-items:center;gap:.3rem;font-size:.85em;color:var(--soft);cursor:pointer;white-space:nowrap}
 label.star input{width:auto}
-#toast{position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%) translateY(200%);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:.7rem 1.2rem;font-size:.9rem;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);transition:transform .25s;z-index:50;max-width:90vw}
-#toast.on{transform:translateX(-50%) translateY(0)}
-.empty{text-align:center;color:var(--muted);padding:4rem 1rem}
+#toast{position:fixed;left:50%;bottom:1.6rem;transform:translate(-50%,220%);background:var(--ink);color:var(--paper);padding:.5rem 1.3rem;font-size:.9em;transition:transform .22s;z-index:50;max-width:90vw}
+#toast.on{transform:translate(-50%,0)}
+.empty{text-align:center;color:var(--faint);padding:4rem 1rem}
 </style></head>
 <body>
-<header><div class="bar">
-  <h1>작업물 관리</h1><span class="count" id="count"></span>
-  <span class="spacer"></span>
-  <button id="reload">새로고침</button>
-  <button id="deploy" class="primary">인터넷에 올리기</button>
-</div></header>
+<svg width="0" height="0" aria-hidden="true" style="position:absolute">
+  <filter id="wobble" x="-15%" y="-60%" width="130%" height="220%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.013 0.021" numOctaves="3" seed="9" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="4.2" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+<header>
+  <div class="bar">
+    <h1>작업물 관리</h1><span class="count" id="count"></span>
+    <span class="spacer"></span>
+    <button id="reload">새로고침</button>
+    <button id="deploy" class="primary">인터넷에 올리기</button>
+  </div>
+  <div class="rule"></div>
+</header>
 
 <main>
   <div id="drop">그림 파일을 여기로 끌어다 놓으면 작업물이 만들어집니다 &nbsp;·&nbsp; <u id="pick" style="cursor:pointer">직접 고르기</u>
@@ -382,8 +408,9 @@ function card(w, cats){
   const thumb = w.coverName
     ? '<img src="/api/thumb?f='+encodeURIComponent(w.coverName)+'" alt=""/>'
     : (w.video ? '<span class="none">유튜브 영상</span>' : '<span class="none">그림 없음</span>');
+  const badge = w.lang && w.lang !== 'ko' ? '<span class="badge">'+w.lang+'</span>' : '';
   el.innerHTML =
-    '<div class="thumb">'+thumb+'</div>'+
+    '<div class="thumb">'+badge+thumb+'</div>'+
     '<button class="x" title="삭제">✕</button>'+
     '<div class="body">'+
       '<input class="t-title" value="">'+

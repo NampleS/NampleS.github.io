@@ -1,19 +1,20 @@
 import rss from '@astrojs/rss';
 import type { APIContext } from 'astro';
-import { site } from '../site';
+import { siteName, text } from '../site';
 import { getPosts } from '../lib/content';
+import { defaultLang } from '../i18n/ui';
 
 export async function GET(context: APIContext) {
-  const posts = await getPosts();
+  const posts = await getPosts(defaultLang);
   return rss({
-    title: site.name,
-    description: site.description,
+    title: siteName,
+    description: text[defaultLang].description,
     site: context.site!,
-    items: posts.map((post) => ({
-      title: post.data.title,
-      description: post.data.summary ?? '',
-      pubDate: post.data.date,
-      link: `/blog/${post.id}/`,
+    items: posts.map((p) => ({
+      title: p.entry.data.title,
+      description: p.entry.data.summary ?? '',
+      pubDate: p.entry.data.date,
+      link: `/blog/${p.base}/`,
     })),
     customData: '<language>ko</language>',
   });

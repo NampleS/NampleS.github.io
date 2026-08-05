@@ -1,0 +1,15 @@
+---
+import GamesIndex from '../../../views/GamesIndex.astro';
+import { langs, defaultLang } from '../../../i18n/ui';
+
+export function getStaticPaths() {
+  return langs.map((l) => ({
+    params: { lang: l === defaultLang ? undefined : l },
+    props: { lang: l },
+  }));
+}
+
+const { lang } = Astro.props;
+---
+
+<GamesIndex lang={lang} />

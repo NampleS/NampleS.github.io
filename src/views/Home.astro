@@ -1,0 +1,72 @@
+---
+import Base from '../layouts/Base.astro';
+import WorkCard from '../components/WorkCard.astro';
+import PostList from '../components/PostList.astro';
+import { text } from '../site';
+import { getWorks, getPosts } from '../lib/content';
+import { localize, useT, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useT(lang);
+const s = text[lang];
+
+const works = await getWorks(lang);
+const posts = await getPosts(lang);
+
+const featured = works.filter((w) => w.entry.data.featured);
+const topWorks = (featured.length ? featured : works).slice(0, 6);
+const topPosts = posts.slice(0, 4);
+---
+
+<Base lang={lang}>
+  <section class="wrap hero">
+    <span class="eyebrow">{s.eyebrow}</span>
+    <h1>{s.headline}</h1>
+    <p class="lede">{s.intro}</p>
+
+    <div class="tags">
+      <a class="tag rough" href={localize('/works/', lang)}>{t('cta_works')}</a>
+      <a class="tag rough" href={localize('/games/', lang)}>{t('cta_games')}</a>
+      <a class="tag rough" href={localize('/about/', lang)}>{t('nav_about')}</a>
+    </div>
+  </section>
+
+  <section class="wrap sec">
+    <div class="sec-head">
+      <h2>{t('sec_works')}</h2>
+      <span class="grow"></span>
+      <a class="small" href={localize('/works/', lang)}>{t('see_all')} →</a>
+    </div>
+
+    {
+      topWorks.length ? (
+        <div class="works">
+          {topWorks.map((item) => (
+            <WorkCard item={item} lang={lang} />
+          ))}
+        </div>
+      ) : (
+        <p class="empty">{t('empty_works')}</p>
+      )
+    }
+  </section>
+
+  {
+    topPosts.length > 0 && (
+      <section class="wrap sec" style="padding-top:0">
+        <div class="sec-head">
+          <h2>{t('sec_blog')}</h2>
+          <span class="grow" />
+          <a class="small" href={localize('/blog/', lang)}>
+            {t('see_all')} →
+          </a>
+        </div>
+        <PostList posts={topPosts} lang={lang} />
+      </section>
+    )
+  }
+</Base>

@@ -1,0 +1,50 @@
+---
+import { siteName, links, fonts } from '../site';
+import { useT, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useT(lang);
+---
+
+<footer class="ftr">
+  <div class="wrap">
+    <div class="rule rule--faint"></div>
+
+    <div class="ftr-links">
+      {
+        links.map((l) =>
+          'href' in l ? (
+            <a href={l.href} rel={l.href.startsWith('http') ? 'me noopener' : undefined}>
+              <span class="lbl">{l.label}</span>
+              {l.text}
+            </a>
+          ) : (
+            <button type="button" data-copy={l.copy} data-copied={t('copied')} title={t('copied')}>
+              <span class="lbl">{l.label}</span>
+              {l.text}
+            </button>
+          )
+        )
+      }
+    </div>
+
+    <div class="ftr-bottom">
+      <span>© {new Date().getFullYear()} {siteName}</span>
+
+      <div class="fonts">
+        <span class="lbl">{t('font_label')}</span>
+        {
+          fonts.map((f) => (
+            <button type="button" data-f={f.id} aria-pressed={f.id === 'pen' ? 'true' : 'false'}>
+              {f.label[lang]}
+            </button>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</footer>

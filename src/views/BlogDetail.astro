@@ -1,0 +1,72 @@
+---
+import { Image } from 'astro:assets';
+import { render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import type { Localized } from '../lib/content';
+import { localize, dateFormat, useT, type Lang } from '../i18n/ui';
+
+interface Props {
+  item: Localized<CollectionEntry<'blog'>>;
+  newer: Localized<CollectionEntry<'blog'>> | null;
+  older: Localized<CollectionEntry<'blog'>> | null;
+  lang: Lang;
+}
+
+const { item, newer, older, lang } = Astro.props;
+const t = useT(lang);
+const { Content } = await render(item.entry);
+const { title, summary, date, tags, cover } = item.entry.data;
+---
+
+<Base lang={lang} title={title} description={summary}>
+  <article class="wrap article">
+    <a class="back" href={localize('/blog/', lang)}>← {t('back_blog')}</a>
+
+    <header class="article-head">
+      <h1>{title}</h1>
+      <div class="meta">
+        <time datetime={date.toISOString()}>{dateFormat(date, lang)}</time>
+        {tags.map((tag) => <span>#{tag}</span>)}
+      </div>
+    </header>
+
+    {!item.translated && lang !== 'ko' && <p class="notice rough">{t('no_translation')}</p>}
+
+    {
+      cover && (
+        <div class="rough" style="margin-bottom:2.4rem">
+          <Image src={cover} alt={title} width={1440} />
+        </div>
+      )
+    }
+
+    <div class="prose">
+      <Content />
+    </div>
+
+    {
+      (newer || older) && (
+        <nav style="margin-top:3.5rem">
+          <div class="rule rule--faint" />
+          <div style="display:flex; justify-content:space-between; gap:1.5rem; margin-top:1.2rem">
+            {older ? (
+              <a class="back" href={localize(`/blog/${older.base}/`, lang)} style="margin:0">
+                ← {older.entry.data.title}
+              </a>
+            ) : (
+              <span />
+            )}
+            {newer ? (
+              <a class="back" href={localize(`/blog/${newer.base}/`, lang)} style="margin:0; text-align:right">
+                {newer.entry.data.title} →
+              </a>
+            ) : (
+              <span />
+            )}
+          </div>
+        </nav>
+      )
+    }
+  </article>
+</Base>

@@ -1,0 +1,15 @@
+---
+import About from '../../views/About.astro';
+import { langs, defaultLang } from '../../i18n/ui';
+
+export function getStaticPaths() {
+  return langs.map((l) => ({
+    params: { lang: l === defaultLang ? undefined : l },
+    props: { lang: l },
+  }));
+}
+
+const { lang } = Astro.props;
+---
+
+<About lang={lang} />

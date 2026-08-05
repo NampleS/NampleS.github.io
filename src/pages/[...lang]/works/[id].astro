@@ -1,0 +1,22 @@
+---
+import WorkDetail from '../../../views/WorkDetail.astro';
+import { getWorks } from '../../../lib/content';
+import { langs, defaultLang } from '../../../i18n/ui';
+
+export async function getStaticPaths() {
+  const paths = [];
+  for (const lang of langs) {
+    for (const item of await getWorks(lang)) {
+      paths.push({
+        params: { lang: lang === defaultLang ? undefined : lang, id: item.base },
+        props: { item, lang },
+      });
+    }
+  }
+  return paths;
+}
+
+const { item, lang } = Astro.props;
+---
+
+<WorkDetail item={item} lang={lang} />

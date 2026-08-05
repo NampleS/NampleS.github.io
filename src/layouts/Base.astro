@@ -1,66 +1,130 @@
 ---
 import '../styles/global.css';
-import { site, nav } from '../site';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { siteName, text } from '../site';
+import { langs, swapLang, type Lang } from '../i18n/ui';
 
 interface Props {
+  lang: Lang;
   title?: string;
   description?: string;
 }
 
-const { title, description } = Astro.props;
-const pageTitle = title ? `${title} — ${site.name}` : `${site.name}`;
-const pageDesc = description ?? site.description;
+const { lang, title, description } = Astro.props;
+const pageTitle = title ? `${title} — ${siteName}` : siteName;
+const desc = description ?? text[lang].description;
 const path = Astro.url.pathname;
+
+const FONTS =
+  'https://fonts.googleapis.com/css2' +
+  '?family=Caveat:wght@400..700' +
+  '&family=Nanum+Pen+Script' +
+  '&family=Yomogi' +
+  '&family=EB+Garamond:ital,wght@0,400..700;1,400..700' +
+  '&family=Nanum+Myeongjo:wght@400;700;800' +
+  '&family=Shippori+Mincho:wght@400;600;800' +
+  '&family=Noto+Sans+JP:wght@400..900' +
+  '&family=Courier+Prime:ital,wght@0,400;0,700;1,400' +
+  '&family=Nanum+Gothic+Coding:wght@400;700' +
+  '&display=swap';
 ---
 
 <!doctype html>
-<html lang="ko">
+<html lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{pageTitle}</title>
-    <meta name="description" content={pageDesc} />
+    <meta name="description" content={desc} />
     <meta name="generator" content={Astro.generator} />
-    <link rel="canonical" href={new URL(path, Astro.site)} />
+
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={new URL(path, Astro.site)} />
+    {langs.map((l) => <link rel="alternate" hreflang={l} href={new URL(swapLang(path, l), Astro.site)} />)}
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href={FONTS} />
+
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content={site.name} />
+    <meta property="og:site_name" content={siteName} />
     <meta property="og:title" content={pageTitle} />
-    <meta property="og:description" content={pageDesc} />
-    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:description" content={desc} />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="alternate" type="application/rss+xml" title={site.name} href="/rss.xml" />
+    <link rel="alternate" type="application/rss+xml" title={siteName} href="/rss.xml" />
+
+    <script is:inline>
+      // 화면이 그려지기 전에 글씨체를 정합니다 (깜빡임 방지)
+      (() => {
+        let f = 'pen';
+        try {
+          f = localStorage.getItem('namples-font') || 'pen';
+        } catch (e) {}
+        if (!['pen', 'mincho', 'gothic', 'type'].includes(f)) f = 'pen';
+        document.documentElement.dataset.font = f;
+      })();
+    </script>
   </head>
+
   <body>
-    <header class="site-header">
-      <div class="wrap bar">
-        <a class="brand" href="/">{site.name}</a>
-        <nav class="site-nav">
-          {
-            nav.map((item) => (
-              <a
-                href={item.href}
-                aria-current={path === item.href || (item.href !== '/' && path.startsWith(item.href)) ? 'page' : undefined}
-              >
-                {item.label}
-              </a>
-            ))
-          }
-        </nav>
-      </div>
-    </header>
+    <!-- 손으로 그린 듯 흔들리는 선을 만드는 필터 -->
+    <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+      <filter id="wobble" x="-15%" y="-60%" width="130%" height="220%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.013 0.021" numOctaves="3" seed="9" result="n" />
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="4.2" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </svg>
+
+    <Header lang={lang} path={path} />
 
     <main>
       <slot />
     </main>
 
-    <footer class="site-footer">
-      <div class="wrap row">
-        <span>© {new Date().getFullYear()} {site.name}</span>
-        <span style="display:flex; flex-wrap:wrap; gap:0.5rem 1rem;">
-          {site.links.map((l) => <a href={l.href}>{l.label}</a>)}
-        </span>
-      </div>
-    </footer>
+    <Footer lang={lang} />
+
+    <div id="toast" role="status" aria-live="polite"></div>
+
+    <script is:inline>
+      (() => {
+        const toast = (msg) => {
+          const t = document.getElementById('toast');
+          if (!t) return;
+          t.textContent = msg;
+          t.classList.add('on');
+          clearTimeout(t._t);
+          t._t = setTimeout(() => t.classList.remove('on'), 1800);
+        };
+
+        // 글씨체 바꾸기
+        const buttons = document.querySelectorAll('.fonts button[data-f]');
+        const paint = (f) => {
+          document.documentElement.dataset.font = f;
+          buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.f === f)));
+        };
+        paint(document.documentElement.dataset.font || 'pen');
+        buttons.forEach((b) =>
+          b.addEventListener('click', () => {
+            paint(b.dataset.f);
+            try {
+              localStorage.setItem('namples-font', b.dataset.f);
+            } catch (e) {}
+          })
+        );
+
+        // 디스코드 아이디 눌러서 복사
+        document.querySelectorAll('[data-copy]').forEach((el) =>
+          el.addEventListener('click', async () => {
+            try {
+              await navigator.clipboard.writeText(el.dataset.copy);
+              toast(el.dataset.copied || 'Copied');
+            } catch (e) {
+              toast(el.dataset.copy);
+            }
+          })
+        );
+      })();
+    </script>
   </body>
 </html>

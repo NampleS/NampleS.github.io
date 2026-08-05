@@ -1,0 +1,54 @@
+---
+import Base from '../layouts/Base.astro';
+import { siteName, text, links } from '../site';
+import { useT, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useT(lang);
+const s = text[lang];
+---
+
+<Base lang={lang} title={t('nav_about')} description={s.intro}>
+  <article class="wrap article">
+    <header class="article-head">
+      <span class="eyebrow">{s.eyebrow}</span>
+      <h1>{siteName}</h1>
+    </header>
+
+    <div class="prose">
+      <p>{s.intro}</p>
+
+      <h2>{t('about_doing')}</h2>
+      <ul>
+        <li>{t('doing_1')}</li>
+        <li>{t('doing_2')}</li>
+        <li>{t('doing_3')}</li>
+      </ul>
+
+      <h2>{t('about_contact')}</h2>
+      <p>{t('about_contact_note')}</p>
+    </div>
+
+    <div class="ftr-links" style="margin-top:1.6rem">
+      {
+        links.map((l) =>
+          'href' in l ? (
+            <a href={l.href} rel={l.href.startsWith('http') ? 'me noopener' : undefined}>
+              <span class="lbl">{l.label}</span>
+              {l.text}
+            </a>
+          ) : (
+            <button type="button" data-copy={l.copy} data-copied={t('copied')}>
+              <span class="lbl">{l.label}</span>
+              {l.text}
+            </button>
+          )
+        )
+      }
+    </div>
+  </article>
+</Base>
